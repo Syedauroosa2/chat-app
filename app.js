@@ -44,7 +44,9 @@ const storage = getStorage(app);
 const isAuthPage = !!document.getElementById('authForm');
 const isChatPage = !!document.getElementById('messageForm');
 
-// Auth Logic
+// ==========================================
+// 🔑 AUTHENTICATION LOGIC (index.html)
+// ==========================================
 if (isAuthPage) {
     let isSignUpState = false;
     const authForm = document.getElementById('authForm');
@@ -63,6 +65,7 @@ if (isAuthPage) {
             authSubtitle.innerText = "Sign up to start chatting";
             submitBtn.innerText = "Sign Up";
             usernameInput.style.display = "block";
+            usernameInput.setAttribute('required', 'true');
             toggleMsg.innerText = "Already have an account?";
             toggleAuth.innerText = "Login";
         } else {
@@ -70,6 +73,7 @@ if (isAuthPage) {
             authSubtitle.innerText = "Login to continue chatting";
             submitBtn.innerText = "Login";
             usernameInput.style.display = "none";
+            usernameInput.removeAttribute('required');
             toggleMsg.innerText = "Don't have an account?";
             toggleAuth.innerText = "Sign Up";
         }
@@ -95,7 +99,9 @@ if (isAuthPage) {
     });
 }
 
-// Chat Logic
+// ==========================================
+// 💬 CHAT LOGIC (chat.html)
+// ==========================================
 if (isChatPage) {
     const messageForm = document.getElementById('messageForm');
     const messageInput = document.getElementById('messageInput');
@@ -105,13 +111,20 @@ if (isChatPage) {
     const currentUserAvatar = document.getElementById('currentUserAvatar');
     const currentUserImg = document.getElementById('currentUserImg');
     
-    // Profile Upload Modal Elements
+    // Profile Modal Elements
     const editProfileBtn = document.getElementById('editProfileBtn');
     const profileModal = document.getElementById('profileModal');
     const profileFileInput = document.getElementById('profileFileInput');
     const saveProfileBtn = document.getElementById('saveProfileBtn');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const uploadStatus = document.getElementById('uploadStatus');
+
+    // Voice Recording Elements
+    const micBtn = document.getElementById('micBtn');
+    const micIcon = document.getElementById('micIcon');
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
 
     let currentUser = null;
 
@@ -187,7 +200,65 @@ if (isChatPage) {
         signOut(auth).then(() => { window.location.href = "index.html"; });
     });
 
-    // Send Message Function
+    // Voice Recording Logic
+    micBtn.addEventListener('click', async () => {
+        if (!isRecording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await sendVoiceMessage(audioBlob);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                micBtn.classList.add('recording');
+                micIcon.classList.remove('fa-microphone');
+                micIcon.classList.add('fa-stop');
+            } catch (err) {
+                alert("Microphone access denied or not available!");
+                console.error(err);
+            }
+        } else {
+            mediaRecorder.stop();
+            isRecording = false;
+            micBtn.classList.remove('recording');
+            micIcon.classList.remove('fa-stop');
+            micIcon.classList.add('fa-microphone');
+        }
+    });
+
+    async function sendVoiceMessage(blob) {
+        try {
+            const audioId = Date.now();
+            const storageRef = ref(storage, `voice_notes/${currentUser.uid}_${audioId}.webm`);
+            
+            await uploadBytes(storageRef, blob);
+            const audioUrl = await getDownloadURL(storageRef);
+
+            await addDoc(collection(db, "global_messages"), {
+                type: "audio",
+                audioUrl: audioUrl,
+                senderId: currentUser.uid,
+                senderName: currentUser.displayName || currentUser.email.split('@')[0],
+                createdAt: serverTimestamp(),
+                reaction: "",
+                isDeleted: false,
+                deletedFor: []
+            });
+        } catch (e) {
+            console.error("Error sending voice note:", e);
+        }
+    }
+
+    // Send Text Message
     messageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = messageInput.value.trim();
@@ -195,14 +266,14 @@ if (isChatPage) {
 
         try {
             await addDoc(collection(db, "global_messages"), {
+                type: "text",
                 text: text,
                 senderId: currentUser.uid,
                 senderName: currentUser.displayName || currentUser.email.split('@')[0],
-                senderPhoto: currentUser.photoURL || '',
                 createdAt: serverTimestamp(),
                 reaction: "",
                 isDeleted: false,
-                deletedFor: [] // Users list who deleted for themselves
+                deletedFor: []
             });
             messageInput.value = "";
         } catch (err) {
@@ -210,7 +281,6 @@ if (isChatPage) {
         }
     });
 
-    // Listen to Messages in Realtime
     function listenToMessages() {
         const q = query(collection(db, "global_messages"), orderBy("createdAt", "asc"));
 
@@ -223,24 +293,17 @@ if (isChatPage) {
         });
     }
 
-    // Render Message Bubble with WhatsApp-style Delete Options
     function renderSingleMessage(id, data) {
-        // Skip rendering if current user deleted this message for themselves
-        if (data.deletedFor && data.deletedFor.includes(currentUser.uid)) {
-            return;
-        }
+        if (data.deletedFor && data.deletedFor.includes(currentUser.uid)) return;
 
         const isMe = data.senderId === currentUser.uid;
-
         const wrapperDiv = document.createElement('div');
         wrapperDiv.classList.add('message-wrapper', isMe ? 'sent' : 'received');
 
-        // Message Pop-up Menu (Emoji Picker & Delete Options)
         const messageMenu = document.createElement('div');
         messageMenu.classList.add('message-menu');
         messageMenu.style.display = 'none';
 
-        // 1. Emoji Reaction List
         if (!data.isDeleted) {
             const reactionPicker = document.createElement('div');
             reactionPicker.classList.add('reaction-picker');
@@ -257,18 +320,15 @@ if (isChatPage) {
             messageMenu.appendChild(reactionPicker);
         }
 
-        // 2. Delete Action Buttons
         const deleteOptions = document.createElement('div');
         deleteOptions.classList.add('delete-options');
 
-        // Delete For Me
         const deleteForMeBtn = document.createElement('button');
         deleteForMeBtn.classList.add('delete-btn');
         deleteForMeBtn.innerHTML = '<i class="fa-solid fa-trash"></i> For Me';
         deleteForMeBtn.addEventListener('click', () => deleteForMe(id));
         deleteOptions.appendChild(deleteForMeBtn);
 
-        // Delete For Everyone (Only sender can delete for everyone)
         if (isMe && !data.isDeleted) {
             const deleteEveryoneBtn = document.createElement('button');
             deleteEveryoneBtn.classList.add('delete-btn');
@@ -276,10 +336,8 @@ if (isChatPage) {
             deleteEveryoneBtn.addEventListener('click', () => deleteForEveryone(id));
             deleteOptions.appendChild(deleteEveryoneBtn);
         }
-
         messageMenu.appendChild(deleteOptions);
 
-        // Message Bubble Content
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message');
         if (data.isDeleted) messageDiv.classList.add('is-deleted');
@@ -287,12 +345,22 @@ if (isChatPage) {
         const senderSpan = document.createElement('small');
         senderSpan.classList.add('message-sender');
         senderSpan.innerText = isMe ? 'You' : data.senderName;
-
-        const textPara = document.createElement('p');
-        textPara.innerText = data.isDeleted ? "🚫 This message was deleted" : data.text;
-
         messageDiv.appendChild(senderSpan);
-        messageDiv.appendChild(textPara);
+
+        if (data.isDeleted) {
+            const textPara = document.createElement('p');
+            textPara.innerText = "🚫 This message was deleted";
+            messageDiv.appendChild(textPara);
+        } else if (data.type === "audio") {
+            const audioElem = document.createElement('audio');
+            audioElem.controls = true;
+            audioElem.src = data.audioUrl;
+            messageDiv.appendChild(audioElem);
+        } else {
+            const textPara = document.createElement('p');
+            textPara.innerText = data.text;
+            messageDiv.appendChild(textPara);
+        }
 
         if (data.reaction && !data.isDeleted) {
             const reactionBadge = document.createElement('span');
@@ -301,7 +369,6 @@ if (isChatPage) {
             messageDiv.appendChild(reactionBadge);
         }
 
-        // Toggle Menu on Message Click
         messageDiv.addEventListener('click', (e) => {
             e.stopPropagation();
             const isVisible = messageMenu.style.display === 'flex';
@@ -314,40 +381,25 @@ if (isChatPage) {
         chatMessages.appendChild(wrapperDiv);
     }
 
-    // Reaction Helper
     async function reactToMessage(docId, emoji) {
         try {
             const messageRef = doc(db, "global_messages", docId);
             await updateDoc(messageRef, { reaction: emoji });
-        } catch (e) {
-            console.error("Error reacting: ", e);
-        }
+        } catch (e) { console.error(e); }
     }
 
-    // Delete For Everyone Helper
     async function deleteForEveryone(docId) {
         try {
             const messageRef = doc(db, "global_messages", docId);
-            await updateDoc(messageRef, { 
-                isDeleted: true,
-                text: "This message was deleted",
-                reaction: ""
-            });
-        } catch (e) {
-            console.error("Error deleting for everyone: ", e);
-        }
+            await updateDoc(messageRef, { isDeleted: true, text: "This message was deleted", reaction: "", type: "text" });
+        } catch (e) { console.error(e); }
     }
 
-    // Delete For Me Helper
     async function deleteForMe(docId) {
         try {
             const messageRef = doc(db, "global_messages", docId);
-            await updateDoc(messageRef, { 
-                deletedFor: arrayUnion(currentUser.uid)
-            });
-        } catch (e) {
-            console.error("Error deleting for me: ", e);
-        }
+            await updateDoc(messageRef, { deletedFor: arrayUnion(currentUser.uid) });
+        } catch (e) { console.error(e); }
     }
 
     document.addEventListener('click', () => {

@@ -48,9 +48,18 @@
                 <!-- Messages JS se append honge -->
             </div>
 
+            <!-- Message & Voice Input Form -->
             <form id="messageForm" class="chat-input-box">
-                <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off" required>
-                <button type="submit" id="sendBtn"><i class="fa-solid fa-paper-plane"></i> Send</button>
+                <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+                
+                <!-- Voice Record Button -->
+                <button type="button" id="micBtn" title="Hold/Click to Record Voice Note">
+                    <i class="fa-solid fa-microphone" id="micIcon"></i>
+                </button>
+
+                <button type="submit" id="sendBtn" title="Send Message">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
             </form>
         </main>
     </div>

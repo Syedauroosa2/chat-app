@@ -54,7 +54,11 @@ body {
     color: #ffffff;
     font-size: 0.95rem;
     outline: none;
+    transition: all 0.3s ease;
 }
+
+.auth-card input:hover { border-color: rgba(139, 92, 246, 0.5); }
+.auth-card input:focus { border-color: #8b5cf6; box-shadow: 0 0 12px rgba(139, 92, 246, 0.4); }
 
 .auth-card button {
     width: 100%;
@@ -66,6 +70,12 @@ body {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.auth-card button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
 }
 
 .toggle-text {
@@ -78,7 +88,10 @@ body {
     color: #a855f7;
     text-decoration: none;
     font-weight: 600;
+    transition: color 0.2s;
 }
+
+.toggle-text a:hover { color: #c084fc; text-decoration: underline; }
 
 /* Chat Layout */
 .chat-container {
@@ -128,7 +141,11 @@ body {
     height: 45px;
     border-radius: 50%;
     object-fit: cover;
+    transition: transform 0.3s ease;
 }
+
+.avatar-container:hover .avatar,
+.avatar-container:hover .avatar-img { transform: scale(1.05); }
 
 .avatar {
     background: linear-gradient(135deg, #6366f1, #a855f7);
@@ -156,12 +173,12 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
 }
 
-.user-info h4 {
-    color: #f8fafc;
-    font-size: 0.95rem;
-}
+.edit-avatar-btn:hover { background: #9333ea; transform: scale(1.15); }
+
+.user-info h4 { color: #f8fafc; font-size: 0.95rem; }
 
 .status-online {
     color: #10b981;
@@ -171,12 +188,7 @@ body {
     gap: 6px;
 }
 
-.dot {
-    width: 8px;
-    height: 8px;
-    background: #10b981;
-    border-radius: 50%;
-}
+.dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
 
 #logoutBtn {
     background: rgba(239, 68, 68, 0.15);
@@ -186,6 +198,14 @@ body {
     height: 38px;
     border-radius: 10px;
     cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#logoutBtn:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
 
 .room-info {
@@ -224,7 +244,7 @@ body {
     gap: 18px;
 }
 
-/* Message Wrapper & Menu Popup */
+/* Message Styles */
 .message-wrapper {
     display: flex;
     flex-direction: column;
@@ -241,8 +261,10 @@ body {
     position: relative;
     word-break: break-word;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: filter 0.2s ease;
 }
+
+.message:hover { filter: brightness(1.1); }
 
 .message-wrapper.sent .message {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -256,7 +278,6 @@ body {
     border-bottom-left-radius: 4px;
 }
 
-/* Deleted Message Style */
 .message.is-deleted {
     font-style: italic;
     opacity: 0.7;
@@ -272,6 +293,13 @@ body {
     opacity: 0.8;
 }
 
+/* Audio Player Styling */
+audio {
+    width: 220px;
+    height: 35px;
+    accent-color: #a855f7;
+}
+
 .reaction-badge {
     position: absolute;
     bottom: -10px;
@@ -283,7 +311,7 @@ body {
     font-size: 0.78rem;
 }
 
-/* Message Popup Menu (Emoji & Delete Options) */
+/* Message Menu */
 .message-menu {
     position: absolute;
     top: -45px;
@@ -308,18 +336,10 @@ body {
     padding-right: 10px;
 }
 
-.reaction-picker span {
-    cursor: pointer;
-    font-size: 1.1rem;
-    transition: transform 0.2s;
-}
+.reaction-picker span { cursor: pointer; font-size: 1.1rem; transition: transform 0.2s; }
+.reaction-picker span:hover { transform: scale(1.4); }
 
-.reaction-picker span:hover { transform: scale(1.3); }
-
-.delete-options {
-    display: flex;
-    gap: 6px;
-}
+.delete-options { display: flex; gap: 6px; }
 
 .delete-btn {
     background: rgba(239, 68, 68, 0.15);
@@ -335,12 +355,9 @@ body {
     transition: all 0.2s;
 }
 
-.delete-btn:hover {
-    background: #ef4444;
-    color: white;
-}
+.delete-btn:hover { background: #ef4444; color: white; }
 
-/* Input Area */
+/* Input Area & Mic Button */
 .chat-input-box {
     padding: 18px 25px;
     background: rgba(15, 23, 42, 0.6);
@@ -360,17 +377,52 @@ body {
     outline: none;
 }
 
-.chat-input-box button {
+#micBtn {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+}
+
+#micBtn:hover { background: rgba(255, 255, 255, 0.15); }
+#micBtn.recording {
+    background: #ef4444;
+    color: white;
+    animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.chat-input-box button[type="submit"] {
     background: linear-gradient(135deg, #a855f7, #6366f1);
     color: white;
     border: none;
-    padding: 14px 24px;
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
     cursor: pointer;
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.2s;
 }
 
-/* Modal Popup Styling */
+.chat-input-box button[type="submit"]:hover { transform: translateY(-2px); }
+
+/* Modal */
 .modal {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -393,27 +445,10 @@ body {
 
 .modal-content h3 { margin-bottom: 10px; }
 .modal-content p { font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px; }
-
 .modal-content input[type="file"] {
-    width: 100%;
-    padding: 10px;
-    background: #0f172a;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-    color: white;
-    margin-bottom: 10px;
-    outline: none;
+    width: 100%; padding: 10px; background: #0f172a;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; margin-bottom: 10px;
 }
-
 .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; }
-.modal-buttons button {
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    background: #8b5cf6;
-    color: white;
-    font-weight: 600;
-}
-
+.modal-buttons button { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; background: #8b5cf6; color: white; font-weight: 600; }
 .modal-buttons .cancel-btn { background: #475569; }
