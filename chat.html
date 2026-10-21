@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusChat - Messages</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="chat-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-profile">
+                    <div class="avatar-container">
+                        <img id="currentUserImg" src="" alt="Avatar" style="display:none;" class="avatar-img">
+                        <div class="avatar" id="currentUserAvatar">U</div>
+                        <button id="editProfileBtn" class="edit-avatar-btn" title="Upload Profile Picture">
+                            <i class="fa-solid fa-camera"></i>
+                        </button>
+                    </div>
+                    <div class="user-info">
+                        <h4 id="currentUserName">User Name</h4>
+                        <span class="status-online"><span class="dot"></span> Online</span>
+                    </div>
+                </div>
+                <button id="logoutBtn" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+
+            <div class="room-info">
+                <h3><i class="fa-solid fa-hashtag"></i> Global Chat</h3>
+                <p>Live real-time messages with Firebase backend.</p>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <header class="chat-header">
+                <div class="chat-title">
+                    <h3># Global Chat Room</h3>
+                    <small>Real-time encrypted communication</small>
+                </div>
+            </header>
+
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages JS se append honge -->
+            </div>
+
+            <form id="messageForm" class="chat-input-box">
+                <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off" required>
+                <button type="submit" id="sendBtn"><i class="fa-solid fa-paper-plane"></i> Send</button>
+            </form>
+        </main>
+    </div>
+
+    <!-- Profile Picture Upload Modal -->
+    <div id="profileModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Upload Profile Picture</h3>
+            <p>Select an image file from your device:</p>
+            
+            <input type="file" id="profileFileInput" accept="image/*">
+            <p id="uploadStatus" style="font-size: 0.8rem; color: #a855f7; margin-top: 5px; display: none;"></p>
+
+            <div class="modal-buttons">
+                <button id="saveProfileBtn">Upload & Save</button>
+                <button id="closeModalBtn" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
