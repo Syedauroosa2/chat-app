@@ -1,85 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusChat - Messages</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexusChat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
 </head>
-<body>
-
-    <div class="chat-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="user-profile">
-                    <div class="avatar-container">
-                        <img id="currentUserImg" src="" alt="Avatar" style="display:none;" class="avatar-img">
-                        <div class="avatar" id="currentUserAvatar">U</div>
-                        <button id="editProfileBtn" class="edit-avatar-btn" title="Upload Profile Picture">
-                            <i class="fa-solid fa-camera"></i>
-                        </button>
-                    </div>
-                    <div class="user-info">
-                        <h4 id="currentUserName">User Name</h4>
-                        <span class="status-online"><span class="dot"></span> Online</span>
-                    </div>
-                </div>
-                <button id="logoutBtn" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
-            </div>
-
-            <div class="room-info">
-                <h3><i class="fa-solid fa-hashtag"></i> Global Chat</h3>
-                <p>Live real-time messages with Firebase backend.</p>
-            </div>
-        </aside>
-
-        <!-- Main Chat Area -->
-        <main class="chat-main">
-            <header class="chat-header">
-                <div class="chat-title">
-                    <h3># Global Chat Room</h3>
-                    <small>Real-time encrypted communication</small>
-                </div>
-            </header>
-
-            <div class="chat-messages" id="chatMessages">
-                <!-- Messages JS se append honge -->
-            </div>
-
-            <!-- Message & Voice Input Form -->
-            <form id="messageForm" class="chat-input-box">
-                <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
-                
-                <!-- Voice Record Button -->
-                <button type="button" id="micBtn" title="Hold/Click to Record Voice Note">
-                    <i class="fa-solid fa-microphone" id="micIcon"></i>
-                </button>
-
-                <button type="submit" id="sendBtn" title="Send Message">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
-            </form>
-        </main>
+<body class="chat-body">
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="side-head">
+      <div class="me">
+        <div class="avatar" id="currentUserAvatar">U</div>
+        <img id="currentUserImg" class="avatar" alt="" style="display:none">
+        <span id="currentUserName">Profile</span>
+      </div>
+      <div class="icon-row">
+        <button id="themeBtn" title="Dark / light"></button>
+        <button id="paletteBtn" title="Chat theme"><i class="fa-solid fa-palette"></i></button>
+        <button id="editProfileBtn" title="Change photo"><i class="fa-solid fa-camera"></i></button>
+        <button id="logoutBtn" title="Log out"><i class="fa-solid fa-right-from-bracket"></i></button>
+      </div>
     </div>
+    <div class="tabs"><button class="tab on" data-pane="chatsPane">Chats</button><button class="tab" data-pane="statusPane">Status</button><button class="tab" data-pane="callsPane">Calls</button></div>
+    <div class="pane" id="chatsPane">
+      <label class="search"><i class="fa-solid fa-magnifying-glass"></i><input id="searchChatsInput" placeholder="Search chats"></label>
+      <div id="chatList"></div>
+    </div>
+    <div class="pane" id="statusPane" style="display:none"><div id="statusList"></div></div>
+    <div class="pane" id="callsPane" style="display:none"><div id="callList"></div></div>
+  </aside>
 
-    <!-- Profile Picture Upload Modal -->
-    <div id="profileModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <h3>Upload Profile Picture</h3>
-            <p>Select an image file from your device:</p>
-            
-            <input type="file" id="profileFileInput" accept="image/*">
-            <p id="uploadStatus" style="font-size: 0.8rem; color: #a855f7; margin-top: 5px; display: none;"></p>
+  <main class="chat">
+    <header class="chat-head">
+      <button id="backBtn" class="head-btn back"><i class="fa-solid fa-arrow-left"></i></button>
+      <div class="avatar" id="roomAv">#</div>
+      <div><h4 id="roomTitle">Global room</h4><small><span class="dot"></span><span id="roomSub">Everyone</span></small></div>
+      <div class="call-btns" id="callBtns" style="display:none">
+        <button id="voiceBtn" class="head-btn" title="Voice call"><i class="fa-solid fa-phone"></i></button>
+        <button id="videoBtn" class="head-btn" title="Video call"><i class="fa-solid fa-video"></i></button>
+      </div>
+    </header>
 
-            <div class="modal-buttons">
-                <button id="saveProfileBtn">Upload & Save</button>
-                <button id="closeModalBtn" class="cancel-btn">Cancel</button>
-            </div>
+    <div class="messages" id="chatMessages"></div>
+
+    <form id="messageForm" class="composer">
+      <div class="attach">
+        <button type="button" id="attachBtn" title="Attach"><i class="fa-solid fa-plus"></i></button>
+        <div class="attach-menu" id="attachMenu">
+          <label for="chatImageInput"><i class="fa-solid fa-image"></i>Photo</label>
+          <button type="button" id="createPollModalBtn"><i class="fa-solid fa-square-poll-vertical"></i>Poll</button>
+          <button type="button" id="locationBtn"><i class="fa-solid fa-location-dot"></i>Location</button>
         </div>
-    </div>
+      </div>
+      <input type="file" id="chatImageInput" accept="image/*" hidden>
+      <input type="text" id="messageInput" placeholder="Write a message" autocomplete="off">
+      <button type="submit" id="sendBtn" class="send" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
+    </form>
+  </main>
+</div>
 
-    <script type="module" src="app.js"></script>
+<!-- Profile -->
+<div id="profileModal" class="modal" style="display:none">
+  <div class="sheet">
+    <h3>Profile photo</h3>
+    <input type="file" id="profileFileInput" accept="image/*">
+    <p id="uploadStatus" class="hint" style="display:none"></p>
+    <div class="actions"><button id="closeModalBtn" class="ghost">Cancel</button><button id="saveProfileBtn">Save photo</button></div>
+  </div>
+</div>
+
+<!-- Poll -->
+<div id="pollModal" class="modal" style="display:none">
+  <div class="sheet">
+    <h3>New poll</h3>
+    <input id="pollQuestion" placeholder="Question">
+    <input id="pollOption1" placeholder="Option 1">
+    <input id="pollOption2" placeholder="Option 2">
+    <div class="actions"><button id="closePollModalBtn" class="ghost">Cancel</button><button id="submitPollBtn">Post poll</button></div>
+  </div>
+</div>
+
+<!-- Location -->
+<div id="locationModal" class="modal" style="display:none">
+  <div class="sheet wide">
+    <h3>Share location</h3>
+    <div class="map-preview" id="mapPreview"><span class="hint">Finding your position…</span></div>
+    <button id="sendCurrentBtn" class="opt" disabled>
+      <i class="fa-solid fa-location-crosshairs"></i>
+      <span><b>Send current location</b><small id="accuracyText">Waiting for GPS</small></span>
+    </button>
+    <div class="opt live">
+      <i class="fa-solid fa-satellite-dish"></i>
+      <span><b>Share live location</b><small>Updates while this tab stays open</small></span>
+      <select id="liveDuration">
+        <option value="15">15 min</option><option value="60" selected>1 hour</option><option value="480">8 hours</option>
+      </select>
+      <button id="startLiveBtn" disabled>Start</button>
+    </div>
+    <div class="actions"><button id="closeLocationBtn" class="ghost">Close</button></div>
+  </div>
+</div>
+
+<!-- Status -->
+<div id="statusModal" class="modal" style="display:none"><div class="sheet">
+  <h3>New status</h3><textarea id="stText" placeholder="Type a status"></textarea>
+  <label class="hint">Background <input type="color" id="stColor" value="#3b4bd6"></label>
+  <input type="file" id="stFile" accept="image/*">
+  <div class="actions"><button id="closeStatusBtn" class="ghost">Cancel</button><button id="postStatusBtn">Post</button></div>
+</div></div>
+<div id="statusView" class="modal" style="display:none"><div class="sheet">
+  <div class="st-top"><b id="stWho"></b><button id="closeViewBtn" class="ghost">Close</button></div>
+  <div id="stBody" class="st-body"></div><div id="stSeen"></div>
+</div></div>
+
+<!-- Theme -->
+<div id="themeModal" class="modal" style="display:none"><div class="sheet">
+  <h3>Chat theme</h3>
+  <p class="hint">Bubble colour</p><div class="sws" id="accSw"></div>
+  <p class="hint">Wallpaper</p><div class="sws" id="wallSw"></div>
+  <label class="hint">Or use your own photo <input type="file" id="wallFile" accept="image/*"></label>
+  <div class="actions"><button id="closeThemeBtn">Done</button></div>
+</div></div>
+
+<!-- Calls -->
+<div id="incomingModal" class="modal" style="display:none"><div class="sheet">
+  <h3 id="inWho"></h3><p class="hint">Incoming call</p>
+  <div class="actions"><button id="declineBtn" class="ghost">Decline</button><button id="acceptBtn">Accept</button></div>
+</div></div>
+<div id="callModal" class="modal" style="display:none"><div class="sheet wide call">
+  <p id="callStatus" class="hint"></p>
+  <video id="remoteVid" autoplay playsinline></video>
+  <video id="localVid" class="pip" autoplay playsinline muted></video>
+  <div class="actions"><button id="muteBtn" class="ghost"><i class="fa-solid fa-microphone"></i></button><button id="hangBtn" class="hang"><i class="fa-solid fa-phone-slash"></i></button></div>
+</div></div>
+
+<div id="toast" class="toast" style="display:none"></div>
+<div id="liveBar" class="live-bar" style="display:none">
+  <span class="pulse"></span> Sharing live location <button id="stopLiveBtn">Stop</button>
+</div>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>
