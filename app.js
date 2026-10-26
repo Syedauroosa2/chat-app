@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, where, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBCxJcg4CAfosmbaxKOScvpEBN-qOSPOus",
@@ -12,7 +13,7 @@ const firebaseConfig = {
     measurementId: "G-R8K95327ZY"
 };
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app), db = getFirestore(app);
+const auth = getAuth(app), db = getFirestore(app), storage = getStorage(app);
 const $ = (id) => document.getElementById(id);
 const MSGS = "global_messages";
 
@@ -45,11 +46,16 @@ if ($('authForm')) {
 if ($('messageForm')) {
     let myPhoto = '', me = null, watchId = null, liveDocId = null, liveTimer = null, pos = null;
     const list = $('chatMessages');
-    let known = {}, chat = 'global', unM = null, unC = null, users = [], archived = [], showArch = false, typing = {}, lastT = 0, sts = [];
-    const col = () => chat === 'global' ? collection(db, MSGS) : collection(db, 'chats', chat, 'messages');
+    let blocked = [], prevBlocked = null, cur = { id: 'global', name: 'Global room', photo: '' }, pinned = null, known = {}, chat = 'global', unM = null, unC = null, users = [], archived = [], showArch = false, typing = {}, lastT = 0, sts = [];
+    const colOf = (c) => c === 'global' ? collection(db, MSGS) : collection(db, 'chats', c, 'messages');
+    const col = () => colOf(chat);
     const show = (id, on = true) => $(id).style.display = on ? '' : 'none';
     const sender = () => ({ senderId: me.uid, senderName: me.displayName || "User", senderPhoto: myPhoto, createdAt: serverTimestamp() });
-    const send = (data) => addDoc(col(), { ...sender(), ...data });
+    const send = async (data) => {
+        if (chat === 'ai') { toast('AI chat supports text only.'); return; }
+        const o = otherUid(); if (o && !canMsg(o)) return;
+        return addDoc(col(), { ...sender(), ...data });
+    };
 
     onAuthStateChanged(auth, (user) => {
         if (!user) return location.href = "index.html";
@@ -86,6 +92,7 @@ if ($('messageForm')) {
         const text = $('messageInput').value.trim();
         if (!text) return;
         $('messageInput').value = "";
+        if (chat === 'ai') return askAI(text);
         await send({ type: "text", text });
     });
     $('chatImageInput').addEventListener('change', async (e) => {
@@ -113,6 +120,7 @@ if ($('messageForm')) {
     const mapsLink = (lat, lng) => `https://www.google.com/maps?q=${lat},${lng}`;
 
     $('locationBtn').onclick = () => {
+        if (chat === 'ai') return toast('AI chat supports text only.');
         show('locationModal');
         $('sendCurrentBtn').disabled = $('startLiveBtn').disabled = true;
         $('accuracyText').innerText = "Waiting for GPS";
@@ -137,6 +145,7 @@ if ($('messageForm')) {
         const mins = +$('liveDuration').value;
         const expiresAt = Date.now() + mins * 60000;
         const d = await send({ type: "location", live: true, lat: pos.latitude, lng: pos.longitude, expiresAt, updatedAt: Date.now() });
+        if (!d) return;
         liveDocId = d;
         watchId = navigator.geolocation.watchPosition((p) => {
             updateDoc(liveDocId, { lat: p.coords.latitude, lng: p.coords.longitude, updatedAt: Date.now() });
@@ -165,10 +174,12 @@ if ($('messageForm')) {
         else av.textContent = (d.senderName || 'U')[0].toUpperCase();
         const b = h('div', 'bubble');
         if (!mine) b.appendChild(h('div', 'who', d.senderName));
+        if (d.forwarded) b.appendChild(h('div', 'fwd', '↪ Forwarded'));
 
         if (d.deleted) b.appendChild(h('em', 'gone', 'This message was deleted'));
         else if (d.type === "image") { const i = h('img', 'media'); i.src = d.imageUrl; b.appendChild(i); }
         else if (d.type === "video") { const v = h('video', 'media'); v.src = d.videoUrl; v.controls = true; b.appendChild(v); }
+        else if (d.type === "sticker") { b.classList.add('nobg'); b.appendChild(h('span', 'sticker', d.text)); }
         else if (d.type === "location") b.appendChild(locationCard(d));
         else if (d.type === "poll") b.appendChild(pollCard(id, d));
         else b.appendChild(h('span', '', d.text));
@@ -216,7 +227,7 @@ if ($('messageForm')) {
         return c;
     }
 
-    /* ---------- private chats, status, typing, archive, theme ---------- */
+    /* ---------- NEW: private chats, status, typing, archive, theme ---------- */
     const root = document.documentElement;
     const ls = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch {} };
     const dmId = (o) => [me.uid, o].sort().join('_');
@@ -230,6 +241,9 @@ if ($('messageForm')) {
         onSnap(collection(db, 'users'), (s) => {
             users = s.docs.map(d => ({ id: d.id, ...d.data() }));
             archived = users.find(u => u.id === me.uid)?.archived || [];
+            blocked = users.find(u => u.id === me.uid)?.blocked || [];
+            const bs = JSON.stringify(blocked);
+            if (prevBlocked !== null && bs !== prevBlocked) { prevBlocked = bs; openChat(cur.id, cur.name, cur.photo); } else { prevBlocked = bs; updateHeader(); }
             const mp = users.find(u => u.id === me.uid)?.photo || ''; if (mp !== myPhoto) { myPhoto = mp; setMyAvatar(); }
             renderChats();
         });
@@ -245,7 +259,8 @@ if ($('messageForm')) {
         chat = id; unM && unM(); unC && unC(); els.clear(); list.replaceChildren(); typing = {};
         $('roomTitle').textContent = name;
         $('roomAv').replaceChildren(); $('roomAv').append(...av(name, photo).childNodes);
-        $('app').classList.add('in-chat'); $('callBtns').style.display = 'flex'; renderChats(); renderSub();
+        $('app').classList.add('in-chat'); $('callBtns').style.display = id === 'ai' ? 'none' : 'flex'; cur = { id, name, photo }; pinned = null; renderPin(); updateHeader(); renderChats(); renderSub();
+        if (id === 'ai') { $('roomAv').textContent = '🤖'; renderAI(); return; }
         unM = onSnap(query(col(), orderBy('createdAt', 'asc')), (snap) => {
             let newPeople = false;
             snap.docChanges().forEach((ch) => {
@@ -253,6 +268,7 @@ if ($('messageForm')) {
                 const dd = ch.doc.data(), old = els.get(ch.doc.id);
                 if (chat === 'global' && dd.senderId && dd.senderId !== me.uid && !known[dd.senderId]) { known[dd.senderId] = { id: dd.senderId, name: dd.senderName, photo: dd.senderPhoto }; newPeople = true; }
                 if (dd.hiddenFor?.includes(me.uid)) { old?.remove(); els.delete(ch.doc.id); return; }
+                if (dd.senderId !== me.uid && blocked.includes(dd.senderId)) { old?.remove(); els.delete(ch.doc.id); return; }
                 const row = build(ch.doc.id, dd);
                 old ? old.replaceWith(row) : list.appendChild(row);
                 els.set(ch.doc.id, row);
@@ -260,7 +276,7 @@ if ($('messageForm')) {
             if (newPeople) renderChats();
             list.scrollTop = list.scrollHeight;
         });
-        unC = onSnap(doc(db, 'chats', id), (s) => { typing = s.data()?.typing || {}; renderSub(); });
+        unC = onSnap(doc(db, 'chats', id), (s) => { typing = s.data()?.typing || {}; pinned = s.data()?.pinned || null; renderPin(); renderSub(); });
     }
     $('backBtn').onclick = () => $('app').classList.remove('in-chat');
 
@@ -268,12 +284,12 @@ if ($('messageForm')) {
     function renderSub() {
         const now = Date.now();
         const t = Object.entries(typing).filter(([u, v]) => u !== me?.uid && now - v.t < 5000).map(([, v]) => v.n);
-        $('roomSub').textContent = t.length ? (chat === 'global' ? t.join(', ') + ' typing…' : 'typing…') : (chat === 'global' ? 'Everyone' : 'Private chat');
+        $('roomSub').textContent = t.length ? (chat === 'global' ? t.join(', ') + ' typing…' : 'typing…') : (chat === 'global' ? 'Everyone' : chat === 'ai' ? 'AI assistant' : 'Private chat');
         $('roomSub').classList.toggle('typing', !!t.length);
     }
     setInterval(renderSub, 1500);
     $('messageInput').addEventListener('input', () => {
-        if (Date.now() - lastT < 2500) return; lastT = Date.now();
+        if (chat === 'ai' || Date.now() - lastT < 2500) return; lastT = Date.now();
         setDoc(doc(db, 'chats', chat), { typing: { [me.uid]: { t: Date.now(), n: me.displayName || 'User' } } }, { merge: true });
     });
 
@@ -281,11 +297,12 @@ if ($('messageForm')) {
     $('searchChatsInput').oninput = () => renderChats();
     function renderChats() {
         const q = $('searchChatsInput').value.toLowerCase(), box = $('chatList'); box.replaceChildren();
-        const all = [{ id: 'global', name: 'Global room' }, ...others().map(u => ({ id: dmId(u.id), name: u.name || u.email || 'User', photo: u.photo }))];
+        const all = [{ id: 'global', name: 'Global room' }, { id: 'ai', name: 'AI Assistant' }, ...others().map(u => ({ id: dmId(u.id), name: u.name || u.email || 'User', photo: u.photo }))];
         const nA = all.filter(c => archived.includes(c.id)).length;
         if (nA) { const r = rowEl(av('A'), showArch ? 'Back to chats' : 'Archived', nA + ' chat(s)'); r.onclick = () => { showArch = !showArch; renderChats(); }; box.append(r); }
         all.filter(c => archived.includes(c.id) === showArch && c.name.toLowerCase().includes(q)).forEach((c) => {
-            const r = rowEl(av(c.name, c.photo), c.name, c.id === 'global' ? 'Everyone' : 'Private chat');
+            const r = rowEl(av(c.name, c.photo), c.name, c.id === 'global' ? 'Everyone' : c.id === 'ai' ? 'Ask me anything' : 'Private chat');
+            if (c.id === 'ai') r.firstChild.textContent = '🤖';
             if (c.id === chat) r.classList.add('active');
             const b = h('button', 'arch'); b.title = showArch ? 'Unarchive' : 'Archive';
             b.innerHTML = `<i class="fa-solid fa-${showArch ? 'box-open' : 'box-archive'}"></i>`;
@@ -352,7 +369,7 @@ if ($('messageForm')) {
     $('wallFile').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { ls('wallimg', r.result); ls('wall', 'img'); applyTheme(); }; r.readAsDataURL(f); };
 
     /* ---------- errors + CALLS (WebRTC, Firestore signaling) ---------- */
-    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', 7000); };
+    const toast = (m, ok) => { const t = $('toast'); t.textContent = m; t.style.background = ok ? '#16a34a' : ''; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', 7000); };
     const onSnap = (q, fn) => onSnapshot(q, fn, (e) => toast(`Firestore: ${e.code}. Check your Firestore rules.`));
     window.addEventListener('unhandledrejection', (e) => toast(String(e.reason?.code || e.reason?.message || 'Something went wrong')));
 
@@ -372,7 +389,7 @@ if ($('messageForm')) {
     }
     async function startCall(type) {
         const to = chat.split('_').find(x => x !== me.uid);
-        if (chat === 'global' || !to) return toast('Calls are one-to-one. Open a person from the Chats list first, then tap the call icon.');
+        if (chat === 'global' || chat === 'ai' || !to) return toast('Calls are one-to-one. Open a person from the Chats list first, then tap the call icon.');
         await setupCall(type); $('callStatus').textContent = 'Calling ' + nameOf(to) + '…';
         callRef = doc(collection(db, 'calls'));
         pc.onicecandidate = (e) => e.candidate && addDoc(collection(callRef, 'offerCandidates'), e.candidate.toJSON());
@@ -470,6 +487,8 @@ if ($('messageForm')) {
         });
         m.append(er);
         const item = (t, fn) => { const b = h('button', 'mi', t); b.type = 'button'; b.onclick = () => { fn(); m.remove(); }; m.append(b); };
+        item(pinned?.id === id ? 'Unpin message' : 'Pin message', () => pinned?.id === id ? updateDoc(doc(db, 'chats', chat), { pinned: deleteField() }) : setDoc(doc(db, 'chats', chat), { pinned: { id, text: snip(d), by: me.displayName || 'User' } }, { merge: true }));
+        item('Forward', () => forwardMsg(d));
         item('Delete for me', () => updateDoc(doc(col(), id), { hiddenFor: arrayUnion(me.uid) }));
         if (mine) item('Delete for everyone', () => updateDoc(doc(col(), id), { deleted: true, text: '', imageUrl: '', reactions: {} }));
         else { const x = h('button', 'mi dim', 'Delete for everyone (only your own messages)'); x.type = 'button'; m.append(x); }
@@ -482,5 +501,122 @@ if ($('messageForm')) {
 
     /* ---------- people list (users collection + anyone seen in Global room) ---------- */
     const others = () => [...users.filter(u => u.id !== me.uid), ...Object.values(known).filter(k => !users.some(u => u.id === k.id))];
-    $('chatsPane').parentElement.append(h('div', 'ver', 'App version 6 loaded'));
+    $('chatsPane').parentElement.append(h('div', 'ver', 'App version 8 loaded'));
+
+    /* ---------- emoji + stickers ---------- */
+    const EMOJI = '😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 😉 😍 🥰 😘 😋 😎 🤩 🥳 😏 😒 😞 😔 😟 😢 😭 😤 😡 🤬 😱 😨 😰 😴 🤔 🤗 🤭 🤫 🙄 😬 🤤 😷 🤒 🤕 🥶 🥵 🤯 😵 🥴 👍 👎 👏 🙌 🙏 💪 👋 🤝 ✌️ 🤞 👌 🤙 ❤️ 🧡 💛 💚 💙 💜 🖤 💔 💕 💯 🔥 ✨ ⭐ 🎉 🎁 🎂 🍕 🍔 🍟 🍫 ☕ 🌹 🌙 ☀️ 🌈 ⚽ 🎮 🎵 📸'.split(' ');
+    const STICKERS = '😂 🥰 😎 🤩 😭 😡 🥳 😴 🤯 🙏 👍 👏 💪 🔥 ❤️ 💔 🎉 🎂 🍕 ☕ 🌹 🌈 🐱 🐶 🦄 🐼 🐵 🐧'.split(' ');
+    const eb = h('button', 'emoji-toggle'); eb.type = 'button'; eb.title = 'Emoji and stickers';
+    eb.innerHTML = '<i class="fa-regular fa-face-smile"></i>'; $('messageInput').before(eb);
+    const panel = h('div', 'emoji-panel'), tabs = h('div', 'ep-tabs'), grid = h('div', 'ep-grid');
+    panel.style.display = 'none'; let mode = 'emoji';
+    const fillGrid = () => {
+        grid.replaceChildren(); grid.className = 'ep-grid ' + mode;
+        (mode === 'emoji' ? EMOJI : STICKERS).forEach((e) => {
+            const b = h('button', '', e); b.type = 'button';
+            b.onclick = () => {
+                if (mode === 'emoji') { const i = $('messageInput'), s = i.selectionStart ?? i.value.length; i.setRangeText(e, s, i.selectionEnd ?? s, 'end'); i.focus(); }
+                else { send({ type: 'sticker', text: e }); panel.style.display = 'none'; }
+            };
+            grid.append(b);
+        });
+    };
+    ['emoji', 'stickers'].forEach((m) => {
+        const t = h('button', 'ep-tab', m === 'emoji' ? 'Emoji' : 'Stickers'); t.type = 'button';
+        t.onclick = () => { mode = m; [...tabs.children].forEach(x => x.classList.toggle('on', x === t)); fillGrid(); };
+        tabs.append(t);
+    });
+    tabs.firstChild.classList.add('on'); panel.append(tabs, grid); $('messageForm').append(panel);
+    eb.onclick = (e) => { e.stopPropagation(); panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; fillGrid(); };
+    panel.onclick = (e) => e.stopPropagation();
+    document.addEventListener('click', () => { panel.style.display = 'none'; });
+
+    /* ---------- AI chat (conversation is kept only on this device) ---------- */
+    // Free third-party service, not tested by me. If it stops working, set AI_URL / AI_KEY / AI_MODEL to another OpenAI-compatible service.
+    // Anything you put in AI_KEY is visible to everyone who opens your site.
+    const AI_URL = 'https://text.pollinations.ai/openai', AI_KEY = '', AI_MODEL = 'openai';
+    let aiHist = (() => { try { return JSON.parse(ls('aiHist') || '[]'); } catch { return []; } })();
+    function aiRow(m) {
+        const mine = m.role === 'user', row = h('div', `row ${mine ? 'sent' : 'received'}`);
+        const b = h('div', 'bubble');
+        if (!mine) b.append(h('div', 'who', 'AI Assistant'));
+        b.append(h('span', '', m.text), h('span', 'time', hm(m.t)));
+        row.append(h('div', 'avatar', mine ? (me.displayName || 'U')[0].toUpperCase() : '🤖'), b);
+        return row;
+    }
+    function renderAI() {
+        list.replaceChildren(); els.clear();
+        if (!aiHist.length) list.append(h('p', 'hint pad', 'Say hi! This chat is private and stays on this device.'));
+        aiHist.forEach(m => list.append(aiRow(m)));
+        list.scrollTop = list.scrollHeight;
+    }
+    async function askAI(text) {
+        aiHist.push({ role: 'user', text, t: Date.now() }); renderAI();
+        const wait = aiRow({ role: 'assistant', text: 'Thinking…', t: Date.now() }); list.append(wait); list.scrollTop = list.scrollHeight;
+        let reply;
+        try {
+            const r = await fetch(AI_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(AI_KEY ? { Authorization: 'Bearer ' + AI_KEY } : {}) },
+                body: JSON.stringify({ model: AI_MODEL, messages: [{ role: 'system', content: 'You are a friendly assistant inside a chat app. Reply briefly, in the same language the user writes in.' }, ...aiHist.slice(-12).map(m => ({ role: m.role, content: m.text }))] })
+            });
+            if (!r.ok) throw new Error('error ' + r.status);
+            reply = (await r.json()).choices[0].message.content;
+        } catch (e) { reply = 'Sorry, the AI service did not answer (' + (e.message || 'network problem') + '). Please try again later.'; }
+        aiHist.push({ role: 'assistant', text: reply, t: Date.now() }); ls('aiHist', JSON.stringify(aiHist.slice(-60)));
+        wait.remove(); if (chat === 'ai') renderAI();
+    }
+
+    /* ---------- block, pin, forward ---------- */
+    const otherUid = () => (chat === 'global' || chat === 'ai') ? null : chat.split('_').find(x => x !== me.uid);
+    function canMsg(uid) {
+        if (blocked.includes(uid)) { toast('You blocked this person. Unblock to send messages.'); return false; }
+        if ((users.find(u => u.id === uid)?.blocked || []).includes(me.uid)) { toast("You can't message this person."); return false; }
+        return true;
+    }
+    const snip = (d) => (d.type === 'image' ? '📷 Photo' : d.type === 'location' ? '📍 Location' : d.type === 'poll' ? '📊 ' + d.question : d.type === 'sticker' ? d.text + ' Sticker' : (d.text || '')).slice(0, 60);
+
+    const pinBar = h('div', 'pinbar'); pinBar.style.display = 'none'; list.before(pinBar);
+    function renderPin() {
+        if (!pinned) { pinBar.style.display = 'none'; return; }
+        pinBar.style.display = 'flex';
+        const x = h('button', '', '✕'); x.type = 'button'; x.title = 'Unpin';
+        x.onclick = (e) => { e.stopPropagation(); updateDoc(doc(db, 'chats', chat), { pinned: deleteField() }); };
+        pinBar.replaceChildren(h('i', 'fa-solid fa-thumbtack'), h('span', '', pinned.text || 'Pinned message'), x);
+        pinBar.onclick = () => els.get(pinned.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    const blockBtn = h('button', 'head-btn'); blockBtn.type = 'button'; blockBtn.style.display = 'none';
+    $('callBtns').after(blockBtn);
+    function updateHeader() {
+        const o = otherUid(), iB = o && blocked.includes(o);
+        blockBtn.style.display = o ? '' : 'none';
+        blockBtn.title = iB ? 'Unblock' : 'Block';
+        blockBtn.innerHTML = `<i class="fa-solid fa-${iB ? 'user-check' : 'ban'}"></i>`;
+        $('messageInput').placeholder = iB ? 'You blocked this person' : 'Write a message';
+    }
+    blockBtn.onclick = () => {
+        const o = otherUid(); if (!o) return;
+        const isB = blocked.includes(o);
+        if (!isB && !confirm(`Block ${nameOf(o)}? You will not see their messages and they cannot message you.`)) return;
+        updateDoc(doc(db, 'users', me.uid), { blocked: isB ? arrayRemove(o) : arrayUnion(o) });
+    };
+
+    function forwardMsg(d) {
+        const m = h('div', 'modal'), sh = h('div', 'sheet'), lst = h('div', 'fwd-list');
+        m.onclick = (e) => { if (e.target === m) m.remove(); };
+        const targets = [{ id: 'global', name: 'Global room' }, ...others().map(u => ({ id: dmId(u.id), name: u.name || u.email || 'User', photo: u.photo, uid: u.id }))];
+        const payload = d.type === 'image' ? { type: 'image', imageUrl: d.imageUrl } : d.type === 'location' ? { type: 'location', live: false, lat: d.lat, lng: d.lng } : d.type === 'sticker' ? { type: 'sticker', text: d.text } : d.type === 'poll' ? { type: 'text', text: '📊 ' + d.question } : { type: 'text', text: d.text };
+        targets.forEach((t) => {
+            const r = rowEl(av(t.name, t.photo), t.name, t.id === 'global' ? 'Everyone' : 'Private chat');
+            r.onclick = async () => {
+                if (t.uid && !canMsg(t.uid)) return;
+                await addDoc(colOf(t.id), { ...sender(), ...payload, forwarded: true });
+                m.remove(); toast('Message forwarded', true);
+            };
+            lst.append(r);
+        });
+        const c = h('button', 'ghost', 'Cancel'); c.type = 'button'; c.onclick = () => m.remove();
+        sh.append(h('h3', '', 'Forward to…'), lst, c); m.append(sh); document.body.append(m);
+    }
 }

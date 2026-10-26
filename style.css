@@ -171,3 +171,28 @@ input,select{font:inherit}
 
 .mi.dim{opacity:.45;cursor:not-allowed}
 .ver{padding:8px 16px;font-size:.7rem;color:var(--mute)}
+
+/* ---- emoji, stickers, AI ---- */
+.composer{position:relative}
+.emoji-toggle{width:42px;height:42px;border:0;border-radius:12px;background:var(--panel2);color:var(--text);font-size:1.1rem}
+.emoji-panel{position:absolute;bottom:70px;left:16px;width:min(360px,calc(100% - 32px));background:var(--panel2);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.5);z-index:40;padding:8px}
+.ep-tabs{display:flex;gap:6px;margin-bottom:8px}
+.ep-tab{flex:1;padding:7px;border:0;border-radius:10px;background:var(--panel);color:var(--mute);font-weight:600}
+.ep-tab.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#0d1017}
+.ep-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:210px;overflow-y:auto}
+.ep-grid.stickers{grid-template-columns:repeat(4,1fr)}
+.ep-grid button{border:0;background:none;font-size:1.4rem;padding:6px;border-radius:10px}
+.ep-grid.stickers button{font-size:2.4rem}
+.ep-grid button:hover{background:var(--panel)}
+.sticker{font-size:64px;line-height:1.1;display:block}
+.bubble.nobg{background:none!important;padding:2px 4px}
+.row .bubble>span:not(.time){white-space:pre-wrap}
+
+/* ---- pin, forward ---- */
+.fwd{font-size:.72rem;color:var(--mute);font-style:italic;margin-bottom:3px}
+.row.sent .fwd{color:rgba(255,255,255,.7)}
+.pinbar{display:flex;align-items:center;gap:10px;padding:8px 18px;background:var(--panel2);border-bottom:1px solid var(--line);font-size:.85rem;cursor:pointer}
+.pinbar span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pinbar i{color:var(--acc)}
+.pinbar button{border:0;background:none;color:var(--mute);font-size:1rem}
+.fwd-list{max-height:320px;overflow-y:auto;margin:0 -10px}
