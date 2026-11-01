@@ -1,31 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusChat - Login & Sign Up</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gupshup Web - WhatsApp & Insta Style</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="auth-card">
-        <h2 id="authTitle">Welcome to NexusChat</h2>
-        <p id="authSubtitle">Login to continue chatting</p>
+<!-- Splash Screen -->
+<div id="splash">
+  <div class="splash-logo">💬</div>
+  <h2>Gupshup</h2>
+  <div class="loader-bar"></div>
+</div>
 
-        <form id="authForm">
-            <input type="text" id="username" placeholder="Full Name" style="display: none;">
-            <input type="email" id="email" placeholder="Email Address" required>
-            <input type="password" id="password" placeholder="Password" required>
-            
-            <button type="submit" id="submitBtn">Login</button>
-        </form>
+<!-- ============ AUTH VIEW ============ -->
+<section class="view on" id="v-auth">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  
+  <div class="auth">
+    <aside class="hero">
+      <div class="logo">💬 Gupshup Web</div>
+      <h1>Chat away,<br>worry-free.</h1>
+      <p>WhatsApp & Instagram combined features: Voice notes, Stories, Seen status, Calling, and Reactions.</p>
+      <div class="demo">
+        <div class="b l">Assalam o Alaikum! 👋</div>
+        <div class="b r">Walaikum Assalam! Kya haal hain? ✨</div>
+        <div class="b l t"><i></i><i></i><i></i></div>
+      </div>
+    </aside>
 
-        <p class="toggle-text">
-            <span id="toggleMsg">Don't have an account?</span> 
-            <a href="#" id="toggleAuth">Sign Up</a>
-        </p>
+    <div class="formside">
+      <div class="card" id="authCard">
+        <div class="seg" data-m="login">
+          <button data-m="login" class="on" id="tabLogin">Login</button>
+          <button data-m="signup" id="tabSignup">Sign up</button>
+          <span class="ind"></span>
+        </div>
+
+        <div class="panes" id="panes" data-m="login">
+          <form id="fLogin" class="pane on">
+            <label class="f"><input id="liEmail" type="email" placeholder=" " required autocomplete="email"><span>Email Address</span></label>
+            <label class="f"><input id="liPass" type="password" placeholder=" " required autocomplete="current-password"><span>Password</span><button type="button" class="eye">👁</button></label>
+            <button type="button" class="link" id="bForgot">Forgot password?</button>
+            <button type="submit" class="btn rip">Log In</button>
+          </form>
+
+          <form id="fSignup" class="pane">
+            <label class="f"><input id="suName" type="text" placeholder=" " required autocomplete="name"><span>Full Name</span></label>
+            <label class="f"><input id="suEmail" type="email" placeholder=" " required autocomplete="email"><span>Email Address</span></label>
+            <label class="f"><input id="suPass" type="password" placeholder=" " required minlength="6" autocomplete="new-password"><span>Password</span><button type="button" class="eye">👁</button></label>
+            <button type="submit" class="btn rip">Create Account</button>
+          </form>
+        </div>
+
+        <p class="err" id="err"></p>
+        <div class="or"><span>or</span></div>
+        <button class="btn alt rip" id="bGoogle" type="button"><b>G</b> Continue with Google</button>
+      </div>
     </div>
+  </div>
+</section>
 
-    <script type="module" src="app.js"></script>
+<!-- ============ MAIN APP VIEW ============ -->
+<section class="view" id="v-app">
+  <div class="app" id="app">
+    <aside class="side">
+      <header class="sh">
+        <div id="meAv" class="av">U</div>
+        <div class="grow">
+          <b id="meName">Loading...</b>
+          <small><span class="online-dot"></span> Online</small>
+        </div>
+        <button class="ib" id="bTheme" title="Toggle Theme">🌙</button>
+        <button class="ib" id="bSet" title="Settings">⚙️</button>
+      </header>
+
+      <!-- Stories / Status Section -->
+      <div class="stories-wrapper">
+        <div class="story-item my-story" id="btnMyStory">
+          <div class="av add-story">+</div>
+          <small>My Status</small>
+        </div>
+        <div class="stories-list" id="storiesList"></div>
+      </div>
+
+      <div class="sq"><input id="q" placeholder="🔍  Search chats or people..."></div>
+
+      <nav class="tabs">
+        <button data-t="chats" class="on">Chats</button>
+        <button data-t="people">People</button>
+        <button data-t="calls">Calls</button>
+      </nav>
+
+      <div class="list" id="list"></div>
+    </aside>
+
+    <main class="main">
+      <div class="empty" id="empty">
+        <div class="orb">💬</div>
+        <h2>Gupshup Web</h2>
+        <p>Select a contact or start a new conversation from <b>People</b> tab.</p>
+      </div>
+
+      <div class="cv" id="cv" hidden>
+        <header class="ch">
+          <button class="ib bk" id="bBack">←</button>
+          <div id="chAv" class="av"></div>
+          <div class="grow">
+            <b id="chName">User</b>
+            <small id="chSub">Online</small>
+          </div>
+          <button class="ib" id="bCall" title="Voice Call">📞</button>
+          <button class="ib" id="bVideo" title="Video Call">📹</button>
+          <button class="ib" id="bLock" title="Chat Lock PIN">🔒</button>
+        </header>
+
+        <div class="msgs" id="msgs"></div>
+        <button class="ib down" id="bDown">⌄</button>
+        <div id="rep"></div>
+
+        <!-- WhatsApp / Insta Style Composer -->
+        <footer class="cmp" id="composer">
+          <button class="ib" id="bEmo" title="Emoji Picker">😊</button>
+          <button class="ib" id="bSticker" title="Stickers">✨</button>
+          <button class="ib" id="bAtt" title="Attach Media">📎</button>
+          <input type="file" id="fileInput" hidden accept="image/*,video/*">
+          <input id="inp" placeholder="Type a message..." autocomplete="off">
+          <button class="send" id="bSend" title="Send or Record Voice">🎤</button>
+        </footer>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ============ MODALS / OVERLAYS ============ -->
+<!-- Emoji & Sticker Picker Popup -->
+<div id="pickerPopup" class="picker-popup" hidden>
+  <div class="picker-header">
+    <button class="picker-tab on" data-tab="emojis">Emojis</button>
+    <button class="picker-tab" data-tab="stickers">Stickers</button>
+  </div>
+  <div class="picker-body" id="pickerBody"></div>
+</div>
+
+<!-- PIN Security Overlay -->
+<div class="ov" id="pin">
+  <div class="pincard">
+    <div class="lk">🔒</div>
+    <h3 id="pinTitle">Enter PIN</h3>
+    <p id="pinSub">Protect this private chat</p>
+    <div class="dots" id="pinDots"><i></i><i></i><i></i><i></i></div>
+    <div class="pad">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button data-a="x">✕</button><button data-k="0">0</button><button data-a="del">⌫</button>
+    </div>
+  </div>
+</div>
+
+<!-- Profile Modal -->
+<div class="ov" id="sheet">
+  <div class="pincard">
+    <h3>⚙️ Profile & Settings</h3>
+    <label class="f"><input id="sName" placeholder=" "><span>Display Name</span></label>
+    <label class="f"><input id="sAbout" placeholder=" "><span>About Status</span></label>
+    <button class="btn rip" id="sSave">Save Changes</button>
+    <button class="btn alt rip" id="sOut">Log Out</button>
+    <button class="btn alt rip" id="sClose">Cancel</button>
+  </div>
+</div>
+
+<!-- Simulated Call Overlay -->
+<div class="ov" id="callModal">
+  <div class="pincard call-card">
+    <div class="call-avatar" id="callAvatar">👤</div>
+    <h2 id="callUserName">User</h2>
+    <p id="callStatus">Calling...</p>
+    <div class="call-actions">
+      <button class="call-btn end" id="btnEndCall">📵 Disconnect</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>
