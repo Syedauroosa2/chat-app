@@ -303,3 +303,29 @@ video.pic{width:260px}
 .gc{aspect-ratio:1;font-size:28px;border:3px solid var(--ln);border-radius:14px;background:var(--in);cursor:pointer}
 .col canvas{align-self:center;border:3px solid var(--ln);border-radius:14px;max-width:100%}
 .story-item small{max-width:60px}
+
+
+.tabs{overflow-x:auto;flex-wrap:nowrap}
+.tabs button{white-space:nowrap;padding:7px 12px}
+.sh .ib{font-size:16px;width:36px;height:36px}
+.docbox{display:flex;align-items:center;gap:8px;padding:8px 10px;border:2.5px solid var(--ln);border-radius:12px;background:rgba(255,255,255,.55);color:#16120d!important;text-decoration:none;min-width:200px}
+.docbox .dn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+video.pic{width:260px}
+.m span{unicode-bidi:plaintext}
+.col select{padding:10px 14px;border-radius:12px;border:2.5px solid var(--ln);background:var(--in);color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.avg{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;max-height:280px;overflow-y:auto}
+.avi{aspect-ratio:1;font-size:28px;border:3px solid var(--ln);border-radius:16px;cursor:pointer;transition:.15s}
+.avi:hover{transform:scale(1.12) rotate(-4deg)}
+.aiwin{display:flex;flex-direction:column;gap:8px}
+.ailist{height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:8px;border:2.5px solid var(--ln);border-radius:14px;background:var(--bg);text-align:left}
+.aib{max-width:85%;padding:8px 12px;border:2.5px solid var(--ln);border-radius:14px;white-space:pre-wrap;word-break:break-word;animation:spring .35s}
+.aib.me{align-self:flex-end;background:var(--s);color:#16120d}
+.aib.bot{align-self:flex-start;background:var(--in);color:var(--ink)}
+.aiwin>input{padding:11px 14px;border:3px solid var(--ln);border-radius:14px;background:var(--in);color:var(--ink)}
+.gg3,.gg4{display:grid;gap:8px;justify-content:center}
+.gg3{grid-template-columns:repeat(3,72px)}
+.gg4{grid-template-columns:repeat(4,64px)}
+.gc{aspect-ratio:1;font-size:28px;border:3px solid var(--ln);border-radius:14px;background:var(--in);cursor:pointer}
+.col canvas{align-self:center;border:3px solid var(--ln);border-radius:14px;max-width:100%}
+.story-item small{max-width:60px}

@@ -1083,3 +1083,27 @@ function v4Init(u) {
 }
 onAuthStateChanged(auth, (u) => { if (u && !v4On) { v4On = 1; v4Init(u); } });
 applyLang();
+
+
+import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+$('bForgot').onclick = async () => {
+  const em = $('liEmail').value.trim();
+
+  if (!em) return fail({ message: 'Please enter your email address above' });
+
+  try {
+    await sendPasswordResetEmail(auth, em);
+    $('err').textContent = '';
+    toast('📧 Reset link sent. Please check your inbox and spam folder');
+
+  } catch (x) {
+    fail({
+      code: ({
+        'auth/invalid-email': 'Invalid email address',
+        'auth/user-not-found': 'No account found with this email',
+        'auth/too-many-requests': 'Too many attempts. Please try again later'
+      })[x.code] || x.code
+    });
+  }
+};
